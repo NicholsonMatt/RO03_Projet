@@ -19,12 +19,18 @@ function readInputFile(inputFile::String)
     close(datafile)
 
     # For each line of the input file
-    for line in data
 
-        # TODO
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
+    n = length(data) #n = 30
+    result = Vector{Vector{Int}}(undef, n)
+
+    for i in 1:n
+        line = data[i]
+        elements = split(line, ",")
+        result[i] = parse.(Int, elements)
 
     end
+
+    return result
 
 end
 

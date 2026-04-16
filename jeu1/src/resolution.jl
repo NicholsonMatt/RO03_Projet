@@ -8,13 +8,17 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(data)
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
 
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
+
+    @variable(m, X[1:15, 1:15], Bin)
+    
+
 
     # Start a chronometer
     start = time()
