@@ -1,5 +1,7 @@
 # This file contains methods to solve an instance (heuristically or with CPLEX)
 using CPLEX
+using MathOptInterface
+using JuMP
 
 include("generation.jl")
 
@@ -11,13 +13,67 @@ Solve an instance with CPLEX
 function cplexSolve(data)
 
     # Create the model
-    m = Model(with_optimizer(CPLEX.Optimizer))
+    m = Model(CPLEX.Optimizer)
 
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 
     @variable(m, X[1:15, 1:15], Bin)
-    
+
+    Y_lignes = Vector{Vector{Vector{VariableRef}}}(undef, 15)
+
+    for i in 1:15
+        nb_blocs = length(data[i])
+        Y_lignes[i] = Vector{Vector{VariableRef}}(undef, nb_blocs)
+        
+        for k in 1:nb_blocs
+            Y_lignes[i][k] = @variable(m, [1:15], Bin)
+            
+            @constraint(m, sum(Y_lignes[i][k][p] for p in 1:(15 - data[i][k] + 1)) == 1)
+            
+            for p in (15 - data[i][k] + 2):15
+                @constraint(m, Y_lignes[i][k][p] == 0)
+            end
+        end
+        
+        if nb_blocs > 1
+            for k in 1:(nb_blocs - 1)
+                @constraint(m, sum(p * Y_lignes[i][k+1][p] for p in 1:15) >= sum((p + data[i][k] + 1) * Y_lignes[i][k][p] for p in 1:15))
+            end
+        end
+    end
+
+    Y_colonnes = Vector{Vector{Vector{VariableRef}}}(undef, 15)
+
+    for j in 1:15
+        nb_blocs = length(data[j+15])
+        Y_colonnes[j] = Vector{Vector{VariableRef}}(undef, nb_blocs)
+        
+        for k in 1:nb_blocs
+            Y_colonnes[j][k] = @variable(m, [1:15], Bin)
+            
+            @constraint(m, sum(Y_colonnes[j][k][p] for p in 1:(15 - data[j+15][k] + 1)) == 1)
+            
+            for p in (15 - data[j+15][k] + 2):15
+                @constraint(m, Y_colonnes[j][k][p] == 0)
+            end
+        end
+        
+        if nb_blocs > 1
+            for k in 1:(nb_blocs - 1)
+                @constraint(m, sum(p * Y_colonnes[j][k+1][p] for p in 1:15) >= sum((p + data[j+15][k] + 1) * Y_colonnes[j][k][p] for p in 1:15))
+            end
+        end
+    end
+
+    for i in 1:15
+        for j in 1:15
+            @constraint(m, X[i, j] == sum(Y_lignes[i][k][p] for k in 1:length(data[i]) for p in max(1, j - data[i][k] + 1):j))
+            @constraint(m, X[i, j] == sum(Y_colonnes[j][k][p] for k in 1:length(data[j+15]) for p in max(1, i - data[j+15][k] + 1):i))
+        end
+    end
+
+
 
 
     # Start a chronometer
@@ -29,8 +85,17 @@ function cplexSolve(data)
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+
+    statut = (primal_status(m) == MathOptInterface.FEASIBLE_POINT)
+    temps_total = time() - start
     
+    if statut
+        grille_finale = round.(Int, value.(X))
+    else
+        grille_finale = []
+    end
+
+    return statut, temps_total, grille_finale
 end
 
 """
@@ -155,5 +220,5 @@ function solveDataSet()
             println(resolutionMethod[methodId], " optimal: ", isOptimal)
             println(resolutionMethod[methodId], " time: " * string(round(solveTime, sigdigits=2)) * "s\n")
         end         
-    end 
+    end
 end
