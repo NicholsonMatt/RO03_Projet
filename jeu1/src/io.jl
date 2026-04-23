@@ -20,7 +20,7 @@ function readInputFile(inputFile::String)
 
     # For each line of the input file
 
-    n = length(data) #n = 30
+    n = length(data)
     result = Vector{Vector{Int}}(undef, n)
 
     for i in 1:n
@@ -195,8 +195,8 @@ Prerequisites:
 """
 function resultsArray(outputFile::String)
     
-    resultFolder = "../res/"
-    dataFolder = "../data/"
+    resultFolder = joinpath(@__DIR__, "..", "res") * "/"
+    dataFolder = joinpath(@__DIR__, "..", "data") * "/"
     
     # Maximal number of files in a subfolder
     maxSize = 0
@@ -346,3 +346,73 @@ function resultsArray(outputFile::String)
     close(fout)
     
 end 
+
+
+
+function displayGrid(donnees)
+    println("\n" * "="^40)
+    println("        INSTANCE NON RÉSOLUE")
+    println("="^40)
+    grille_vide = zeros(Int, 15, 15)
+    afficher_console(donnees, grille_vide)
+end
+
+
+function displaySolution(donnees, grille)
+    if grille === nothing
+        println("Aucune solution à afficher.")
+        return
+    end
+    
+    println("\n" * "="^40)
+    println("          INSTANCE RÉSOLUE")
+    println("="^40)
+    
+    afficher_console(donnees, grille)
+end
+
+
+"""
+Fonction utilitaire interne pour formater proprement le texte dans la console.
+Affiche les contraintes des colonnes empilées verticalement, 
+puis les contraintes des lignes et la grille.
+"""
+function afficher_console(donnees, grille)
+    contraintes_colonnes = donnees[16:30]
+    
+    hauteur_max = maximum(length.(contraintes_colonnes))
+    
+    println()
+    for k in 1:hauteur_max
+        print(lpad("", 15), " | ")
+        
+        for j in 1:15
+            index_chiffre = k - (hauteur_max - length(contraintes_colonnes[j]))
+            
+            if index_chiffre > 0
+                valeur = contraintes_colonnes[j][index_chiffre]
+                print(lpad(string(valeur), 2), " ") 
+            else
+                print("   ")
+            end
+        end
+        println()
+    end
+    
+    println("-"^65)
+
+    for i in 1:15
+        indices_ligne = join(donnees[i], " ")
+        print(lpad(indices_ligne, 15), " | ")
+        
+        for j in 1:15
+            if grille[i, j] > 0.5 
+                print(" ■ ")
+            else
+                print(" . ")
+            end
+        end
+        println()
+    end
+    println("-"^65 * "\n")
+end

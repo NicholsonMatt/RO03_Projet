@@ -15,7 +15,6 @@ function cplexSolve(data)
     # Create the model
     m = Model(CPLEX.Optimizer)
 
-    # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 
     @variable(m, X[1:15, 1:15], Bin)
@@ -117,8 +116,8 @@ Remark: If an instance has previously been solved (either by cplex or the heuris
 """
 function solveDataSet()
 
-    dataFolder = "../data/"
-    resFolder = "../res/"
+    dataFolder = joinpath(@__DIR__, "..", "data") * "/"
+    resFolder = joinpath(@__DIR__, "..", "res") * "/"
 
     # Array which contains the name of the resolution methods
     resolutionMethod = ["cplex"]
@@ -142,11 +141,8 @@ function solveDataSet()
     for file in filter(x->occursin(".txt", x), readdir(dataFolder))  
         
         println("-- Resolution of ", file)
-        readInputFile(dataFolder * file)
+        donnees = readInputFile(dataFolder * file)
 
-        # TODO
-        println("In file resolution.jl, in method solveDataSet(), TODO: read value returned by readInputFile()")
-        
         # For each resolution method
         for methodId in 1:size(resolutionMethod, 1)
             
@@ -163,18 +159,18 @@ function solveDataSet()
                 # If the method is cplex
                 if resolutionMethod[methodId] == "cplex"
                     
-                    # TODO 
-                    println("In file resolution.jl, in method solveDataSet(), TODO: fix cplexSolve() arguments and returned values")
-                    
                     # Solve it and get the results
-                    isOptimal, resolutionTime = cplexSolve()
+                    isOptimal, resolutionTime, X = cplexSolve(donnees)
                     
                     # If a solution is found, write it
+                    println(fout, "solveTime = ", resolutionTime) 
+                    println(fout, "isOptimal = ", isOptimal)
                     if isOptimal
-                        # TODO
-                        println("In file resolution.jl, in method solveDataSet(), TODO: write cplex solution in fout") 
+                        println(fout, "X = ", X)
+                    else
+                        println(fout, "X = rien")
                     end
-
+                    close(fout)
                 # If the method is one of the heuristics
                 else
                     
