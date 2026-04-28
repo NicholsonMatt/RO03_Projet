@@ -1,5 +1,7 @@
 # This file contains methods to solve an instance (heuristically or with CPLEX)
 using CPLEX
+using MathOptInterface
+using JuMP
 
 include("generation.jl")
 
@@ -8,13 +10,61 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(V::Matrix{Int}, n::Int64)
 
     # Create the model
-    m = Model(with_optimizer(CPLEX.Optimizer))
+    m = Model(CPLEX.Optimizer)
 
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
+
+    lignes, colonnes = size(V)
+    nb_regions = div(lignes * colonnes, n)
+
+    @variable(m, X[1:lignes, 1:colonnes, 1:nb_regions], Bin)
+
+    for i in 1:lignes
+        for j in 1:colonnes
+            @constraint(m, sum(X[i,j,k] for k in 1:nb_regions) == 1)
+        end
+    end
+
+    for k in 1:nb_regions
+        @constraint(m, sum(X[i,j,k] for i in 1:lignes, j in 1:colonnes) == n)
+    end
+
+    for k in 1:nb_regions
+        for i in 1:lignes
+            for j in 1:colonnes
+            
+                voisins = VariableRef[]
+                
+                if i > 1
+                    push!(voisins, X[i-1, j, k])
+                end
+                
+                if i < lignes
+                    push!(voisins, X[i+1, j, k])
+                end
+                
+                if j > 1
+                    push!(voisins, X[i, j-1, k])
+                end
+                
+                if j < colonnes
+                    push!(voisins, X[i, j+1, k])
+                end
+
+                if V[i,j] >= 0
+                    @constraint(m, sum(voisins) - (4 - V[i,j]) <= 4 * (1 - X[i,j,k]))
+                    @constraint(m, sum(voisins) - (4 - V[i,j]) >= -4 * (1 - X[i,j,k]))
+                end
+                
+                @constraint(m, sum(voisins) >= X[i,j,k])
+                
+            end
+        end
+    end
 
     # Start a chronometer
     start = time()
@@ -25,7 +75,17 @@ function cplexSolve()
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+
+    statut = (primal_status(m) == MathOptInterface.FEASIBLE_POINT)
+    temps_total = time() - start
+    
+    if statut
+        grille_finale = round.(Int, value.(X))
+    else
+        grille_finale = []
+    end
+
+    return statut, temps_total, grille_finale
     
 end
 
