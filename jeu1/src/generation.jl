@@ -11,18 +11,51 @@ Argument
 function generer_instance(nom_fichier::String)
     grille = rand(0:1, 15, 15)
     grille_lisse = copy(grille)
-    
-    for i in 2:14
-        for j in 2:14
-            somme_voisins = grille[i-1, j] + grille[i+1, j] + grille[i, j-1] + grille[i, j+1]
-            if somme_voisins >= 3
-                grille_lisse[i, j] = 1
-            elseif somme_voisins <= 1
-                grille_lisse[i, j] = 0
+    change = true
+    it_max = 10
+    it = 0
+    while change && (it < it_max)
+        it = it + 1
+        change = false
+        for i in 1:15
+            for j in 1:15
+                somme_voisins = 0
+                
+                if i > 1
+                    somme_voisins += grille[i-1, j]
+                end
+                if i < 15
+                    somme_voisins += grille[i+1, j]
+                end
+                if j > 1
+                    somme_voisins += grille[i, j-1]
+                end
+                if j < 15
+                    somme_voisins += grille[i, j+1]
+                end
+                if i > 1 && j > 1
+                    somme_voisins += grille[i-1, j-1]
+                end
+                if i < 15 && j < 15
+                    somme_voisins += grille[i+1, j+1]
+                end
+                if i > 1 && j < 15
+                    somme_voisins += grille[i-1, j+1]
+                end
+                if i < 15 && j > 1
+                    somme_voisins += grille[i+1, j-1]
+                end
+                
+                if somme_voisins >= 5
+                    grille_lisse[i, j] = 1
+                    change = true
+                elseif somme_voisins <= 3
+                    grille_lisse[i, j] = 0
+                    change = true
+                end
             end
         end
     end
-
     chemin_fichier = joinpath(@__DIR__, "..", "data", nom_fichier)
     
     open(chemin_fichier, "w") do f

@@ -1,4 +1,3 @@
-# N'oublie pas d'importer le paquet !
 using Plots 
 
 include("io.jl")
@@ -35,7 +34,8 @@ function afficher_picross_fenetre(donnees, grille)
 end
 
 function main()
-    chemin_fichier = joinpath(@__DIR__, "..", "data", "instanceText.txt")
+    generer_instance("testv2.txt")
+    chemin_fichier = joinpath(@__DIR__, "..", "data", "testv2.txt")
     donnees = readInputFile(chemin_fichier)
     
     statut, temps, X = cplexSolve(donnees)
@@ -45,8 +45,6 @@ function main()
         displaySolution(donnees, X)
         afficher_picross_fenetre(donnees, X)
         
-        println("\n'Entrée' pour fermer la fenêtre et quitter.")
-        readline()
     else
         println("Pas trouvé de solution réalisable.")
     end
@@ -57,7 +55,9 @@ end
 
 function main2()
     generateDataSet(10)
+    solveDataSet()
+    #generer_instance("testv2.txt")
     resultsArray("testResultat")
 end
 
-main2()
+main()
