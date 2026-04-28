@@ -14,18 +14,22 @@ function readInputFile(inputFile::String)
 
     # Open the input file
     datafile = open(inputFile)
-
-    data = readlines(datafile)
+    lignes = readlines(datafile)
     close(datafile)
 
-    # For each line of the input file
-    for line in data
+    prem_ligne = parse.(Int, split(lignes[1], ","))
+    taille_zone = prem_ligne[3]
 
-        # TODO
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
+    grille = zeros(Int, prem_ligne[1], prem_ligne[2])
 
+    for i in 1:prem_ligne[1]
+        valeurs_ligne = parse.(Int, split(lignes[i+1], ","))
+        for j in 1:prem_ligne[2]
+            grille[i, j] = valeurs_ligne[j]
+        end
     end
-
+    
+    return grille, taille_zone
 end
 
 
