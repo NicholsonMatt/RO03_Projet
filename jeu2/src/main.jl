@@ -51,17 +51,37 @@ function afficherSolution(grille_3d)
 end
 
 function main()
-    chemin_fichier = joinpath(@__DIR__, "..", "data", "instanceTest_plus_dur.txt")
+    chemin_fichier = joinpath(@__DIR__, "..", "data", "InstanceGeneree.txt")
     V, n = readInputFile(chemin_fichier)
-    is_optimal, time_taken, solution = cplexSolve(V, n)
+    is_optimal, time_taken_callback, solution_callback = cplexSolve_callback(V, n)
+    displayGrid(V)
+    displaySolution(solution_callback)
+    #=
+    generateInstance(6, 5, 5, 0.6, "InstanceGeneree.txt")
+
+    chemin_fichier = joinpath(@__DIR__, "..", "data", "InstanceGeneree.txt")
+    V, n = readInputFile(chemin_fichier)
+    is_optimal, time_taken_callback, solution_callback = cplexSolve_callback(V, n)
     
     if is_optimal
-        afficherSolution(solution)
+        afficherSolution(solution_callback)
     else
         println("Aucune solution trouvée.")
     end
     
-    return is_optimal, time_taken
+    is_optimal, time_taken_flot, solution_flot = cplexSolve_flot(V, n)
+    
+    if is_optimal
+        afficherSolution(solution_flot)
+    else
+        println("Aucune solution trouvée.")
+    end
+
+    println("Temps de résolution avec callback : ", time_taken_callback, " secondes")
+    println("Temps de résolution avec flot : ", time_taken_flot, " secondes")
+    
+    return is_optimal
+    =#
 end
 
 main()

@@ -32,6 +32,59 @@ function readInputFile(inputFile::String)
     return grille, taille_zone
 end
 
+function displayGrid(V::Matrix{Int})
+    lignes, colonnes = size(V)
+    for i in 1:lignes
+        println("+" * "---+"^colonnes)
+        for j in 1:colonnes
+            val = V[i,j] == -1 ? " " : string(V[i,j])
+            print("| $val ")
+        end
+        println("|")
+    end
+    println("+" * "---+"^colonnes)
+end
+
+function displaySolution(V::Matrix{Int}, grille_3d::AbstractArray)
+    lignes, colonnes, nb_regions = size(grille_3d)
+    
+    solution2d = zeros(Int, lignes, colonnes)
+    for i in 1:lignes
+        for j in 1:colonnes
+            for k in 1:nb_regions
+                if grille_3d[i, j, k] >= 1
+                    solution2d[i, j] = k
+                    break
+                end
+            end
+        end
+    end
+
+    for i in 1:lignes
+        for j in 1:colonnes
+            print("+")
+            if i == 1 || solution2d[i, j] != solution2d[i-1, j]
+                print("---")
+            else
+                print("   ")
+            end
+        end
+        println("+")
+
+        for j in 1:colonnes
+            if j == 1 || solution2d[i, j] != solution2d[i, j-1]
+                print("|")
+            else
+                print(" ")
+            end
+            val = V[i,j] == -1 ? " " : string(V[i,j])
+            print(" $val ")
+        end
+        println("|")
+    end
+    
+    println("+" * "---+"^colonnes)
+end
 
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder

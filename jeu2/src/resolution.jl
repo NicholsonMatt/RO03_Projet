@@ -12,7 +12,7 @@ TOL = 0.00001
 Solve an instance with CPLEX
 """
 
-function cplexSolve(V::Matrix{Int}, n::Int64)
+function cplexSolve_callback(V::Matrix{Int}, n::Int64)
 
     # Create the model
     m = Model(CPLEX.Optimizer)
@@ -68,9 +68,9 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
         end
     end
 
-    masque_region = falses(lignes, colonnes)
-
     function callback_connexite(cb_data)
+    masque_region = falses(lignes, colonnes)
+        
         for k in 1:nb_regions
             fill!(masque_region, false)
             
@@ -107,7 +107,7 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
         end
     end
 
-    MathOptInterface.set(m, MathOptInterface.LazyConstraintCallback(), callback_connexite)
+    MOI.set(m, MOI.LazyConstraintCallback(), callback_connexite)
     
     # Start a chronometer
     start = time()
@@ -170,20 +170,19 @@ function verifier_connexite_masque(masque::BitMatrix, n::Int)
     return est_connexe, collect(visitees) 
 end
 
-#=
-function cplexSolve(V::Matrix{Int}, n::Int64)
+
+function cplexSolve_flot(V::Matrix{Int}, n::Int64)
     m = Model(CPLEX.Optimizer)
     lignes, colonnes = size(V)
     nb_regions = div(lignes * colonnes, n)
 
     @variable(m, X[1:lignes, 1:colonnes, 1:nb_regions], Bin)
     
-    # Variables de flot pour la connectivité
-    @variable(m, R[1:lignes, 1:colonnes, 1:nb_regions], Bin) # 1 si c'est la racine
-    @variable(m, F_h[1:lignes, 1:colonnes, 1:nb_regions] >= 0) # Flot vers le haut
-    @variable(m, F_b[1:lignes, 1:colonnes, 1:nb_regions] >= 0) # Flot vers le bas
-    @variable(m, F_g[1:lignes, 1:colonnes, 1:nb_regions] >= 0) # Flot vers la gauche
-    @variable(m, F_d[1:lignes, 1:colonnes, 1:nb_regions] >= 0) # Flot vers la droite
+    @variable(m, R[1:lignes, 1:colonnes, 1:nb_regions], Bin)
+    @variable(m, F_h[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
+    @variable(m, F_b[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
+    @variable(m, F_g[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
+    @variable(m, F_d[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
 
     for i in 1:lignes
         for j in 1:colonnes
@@ -254,7 +253,7 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
 
     return statut, temps_total, grille_finale
 end
-=#
+
 
 """
 Heuristically solve an instance
