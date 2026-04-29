@@ -11,7 +11,7 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-#=
+
 function cplexSolve(V::Matrix{Int}, n::Int64)
 
     # Create the model
@@ -68,6 +68,47 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
         end
     end
 
+    masque_region = falses(lignes, colonnes)
+
+    function callback_connexite(cb_data)
+        for k in 1:nb_regions
+            fill!(masque_region, false)
+            
+            for i in 1:lignes
+                for j in 1:colonnes
+                    if round(Int, callback_value(cb_data, X[i,j,k])) == 1
+                        masque_region[i,j] = true
+                    end
+                end
+            end
+            
+            est_valide, sous_tour = verifier_connexite_masque(masque_region, n)
+
+            if !est_valide
+                taille_sous_tour = length(sous_tour)
+                sous_tour_set = Set(sous_tour)
+
+                voisins_ext = Set{Tuple{Int,Int}}()
+                for (r, c) in sous_tour
+                    for (dr, dc) in ((-1,0),(1,0),(0,-1),(0,1))
+                        nr, nc = r+dr, c+dc
+                        if 1 <= nr <= lignes && 1 <= nc <= colonnes && !((nr,nc) in sous_tour_set)
+                            push!(voisins_ext, (nr, nc))
+                        end
+                    end
+                end
+                coupe = @build_constraint(
+                    sum(X[r,c,k] for (r,c) in sous_tour) <=
+                    taille_sous_tour - 1 + 
+                    (isempty(voisins_ext) ? 0 : sum(X[r,c,k] for (r,c) in voisins_ext))
+                )
+                MathOptInterface.submit(m, MathOptInterface.LazyConstraint(cb_data), coupe)
+            end
+        end
+    end
+
+    MathOptInterface.set(m, MathOptInterface.LazyConstraintCallback(), callback_connexite)
+    
     # Start a chronometer
     start = time()
 
@@ -80,7 +121,7 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
 
     statut = (primal_status(m) == MathOptInterface.FEASIBLE_POINT)
     temps_total = time() - start
-    
+
     if statut
         grille_finale = round.(Int, value.(X))
     else
@@ -91,10 +132,45 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
     
 end
 
-=#
 
 
+function verifier_connexite_masque(masque::BitMatrix, n::Int)
+    lignes, colonnes = size(masque)
+    
+    depart = nothing
+    for i in 1:lignes, j in 1:colonnes
+        if masque[i,j]
+            depart = (i, j)
+            break
+        end
+    end
+    if depart === nothing 
+        return false, [] 
+    end
+    a_visiter = [depart]
+    visitees = Set{Tuple{Int, Int}}()
+    push!(visitees, depart)
 
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    while !isempty(a_visiter)
+        i, j = popfirst!(a_visiter) # On prend la première case de la file
+        
+        for (di, dj) in directions
+            ni, nj = i + di, j + dj
+            
+            if 1 <= ni <= lignes && 1 <= nj <= colonnes && masque[ni, nj] && !((ni, nj) in visitees)
+                push!(visitees, (ni, nj))
+                push!(a_visiter, (ni, nj))
+            end
+        end
+    end
+    nb_cases_trouvees = length(visitees)
+    est_connexe = (nb_cases_trouvees == n)
+    return est_connexe, collect(visitees) 
+end
+
+#=
 function cplexSolve(V::Matrix{Int}, n::Int64)
     m = Model(CPLEX.Optimizer)
     lignes, colonnes = size(V)
@@ -178,7 +254,7 @@ function cplexSolve(V::Matrix{Int}, n::Int64)
 
     return statut, temps_total, grille_finale
 end
-
+=#
 
 """
 Heuristically solve an instance
