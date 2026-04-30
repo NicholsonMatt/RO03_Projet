@@ -51,11 +51,12 @@ function afficherSolution(grille_3d)
 end
 
 function main()
-    chemin_fichier = joinpath(@__DIR__, "..", "data", "InstanceGeneree.txt")
+    generateInstance(6,5,5, 0.3, "InstanceTest2.txt")
+    chemin_fichier = joinpath(@__DIR__, "..", "data", "InstanceTest2.txt")
     V, n = readInputFile(chemin_fichier)
     is_optimal, time_taken_callback, solution_callback = cplexSolve_callback(V, n)
     displayGrid(V)
-    displaySolution(solution_callback)
+    displaySolution(V, solution_callback)
     #=
     generateInstance(6, 5, 5, 0.6, "InstanceGeneree.txt")
 
@@ -84,4 +85,11 @@ function main()
     =#
 end
 
-main()
+function main2()
+    generateDataSet(6, 5, 5, 0.3, 10)
+    solveDataSet()
+    resultsArray("testResultat")
+end
+
+#main()
+main2()

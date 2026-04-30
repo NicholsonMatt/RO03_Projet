@@ -10,6 +10,7 @@ Argument
 - density: percentage in [0, 1] of initial values in the grid
 """
 
+#=
 function cplexGenerate(lignes::Int, colonnes::Int, n::Int)
     m = Model(CPLEX.Optimizer)
     nb_regions = div(lignes * colonnes, n)
@@ -21,6 +22,9 @@ function cplexGenerate(lignes::Int, colonnes::Int, n::Int)
     @variable(m, F_b[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
     @variable(m, F_g[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
     @variable(m, F_d[1:lignes, 1:colonnes, 1:nb_regions] >= 0)
+
+
+    @constraint(m, X[1, 1, 1] == 1)
 
     for i in 1:lignes
         for j in 1:colonnes
@@ -93,6 +97,97 @@ function cplexGenerate(lignes::Int, colonnes::Int, n::Int)
         error("CPLEX n'a pas pu générer une grille valide.")
     end
 end
+=#
+
+function cplexGenerate(lignes::Int, colonnes::Int, n::Int)
+    m = Model(CPLEX.Optimizer)
+    nb_regions = div(lignes * colonnes, n)
+
+    @variable(m, X[1:lignes, 1:colonnes, 1:nb_regions], Bin)
+
+    for i in 1:lignes
+        for j in 1:colonnes
+            @constraint(m, sum(X[i,j,k] for k in 1:nb_regions) == 1)
+        end
+    end
+
+    for k in 1:nb_regions
+        @constraint(m, sum(X[i,j,k] for i in 1:lignes, j in 1:colonnes) == n)
+    end
+
+    @constraint(m, X[1, 1, 1] == 1)
+
+    C = rand(lignes, colonnes, nb_regions)
+    @objective(m, Max, sum(C[i,j,k] * X[i,j,k] for i in 1:lignes, j in 1:colonnes, k in 1:nb_regions))
+
+    masque_region = falses(lignes, colonnes)
+
+    function callback_connexite_gen(cb_data)
+        for k in 1:nb_regions
+            fill!(masque_region, false)
+            
+            for i in 1:lignes
+                for j in 1:colonnes
+                    if round(Int, callback_value(cb_data, X[i,j,k])) == 1
+                        masque_region[i,j] = true
+                    end
+                end
+            end
+            
+            est_valide, sous_tour = verifier_connexite_masque(masque_region, n)
+
+            if !est_valide
+                taille_sous_tour = length(sous_tour)
+                
+                # Calcul de la frontière pour la "coupe" correcte
+                frontiere = Set{Tuple{Int, Int}}()
+                directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                
+                for (r, c) in sous_tour
+                    for (dr, dc) in directions
+                        nr, nc = r + dr, c + dc
+                        if 1 <= nr <= lignes && 1 <= nc <= colonnes && !((nr, nc) in sous_tour)
+                            push!(frontiere, (nr, nc))
+                        end
+                    end
+                end
+                
+                coupe = @build_constraint(
+                    sum(X[r, c, k] for (r, c) in sous_tour) <= taille_sous_tour - 1 + sum(X[nr, nc, k] for (nr, nc) in frontiere)
+                )
+                
+                MathOptInterface.submit(m, MathOptInterface.LazyConstraint(cb_data), coupe)
+                return 
+            end
+        end
+    end
+
+    MathOptInterface.set(m, MathOptInterface.LazyConstraintCallback(), callback_connexite_gen)
+
+    set_optimizer_attribute(m, "CPX_PARAM_MIPEMPHASIS", 1)
+    
+    optimize!(m)
+    
+    if termination_status(m) == MathOptInterface.OPTIMAL || primal_status(m) == MathOptInterface.FEASIBLE_POINT
+        sol_X = round.(Int, value.(X))
+        sol_2d = zeros(Int, lignes, colonnes)
+        for i in 1:lignes
+            for j in 1:colonnes
+                for k in 1:nb_regions
+                    if sol_X[i,j,k] == 1
+                        sol_2d[i,j] = k
+                        break
+                    end
+                end
+            end
+        end
+        return sol_2d
+    else
+        error("CPLEX n'a pas pu générer une grille valide (Temps dépassé ou impossible).")
+    end
+end
+
+
 
 function generateInstance(lignes::Int, colonnes::Int, n::Int, densite::Float64, nom_fichier::String)
 
@@ -124,7 +219,6 @@ function generateInstance(lignes::Int, colonnes::Int, n::Int, densite::Float64, 
             println(f, join(grille_finale[i, :], ","))
         end
     end
-
     println("In file generation.jl, in method generateInstance(), TODO: generate an instance")
     
 end 
@@ -134,11 +228,11 @@ Generate all the instances
 
 Remark: a grid is generated only if the corresponding output file does not already exist
 """
-function generateDataSet()
-
-    # TODO
-    println("In file generation.jl, in method generateDataSet(), TODO: generate an instance")
-    
+function generateDataSet(lignes::Int, colonnes::Int, n::Int, densite::Float64, nb::Int)
+    for i in 1:nb
+        nom_fichier = "instance_no$i.txt"
+        generateInstance(lignes, colonnes, n, densite, nom_fichier)
+    end
 end
 
 

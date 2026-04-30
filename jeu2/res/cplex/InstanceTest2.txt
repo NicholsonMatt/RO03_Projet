@@ -1,0 +1,4 @@
+solveTime = 0.19899988174438477
+isOptimal = true
+grille : 
+nothing

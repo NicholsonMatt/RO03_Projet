@@ -246,8 +246,8 @@ Prerequisites:
 """
 function resultsArray(outputFile::String)
     
-    resultFolder = "../res/"
-    dataFolder = "../data/"
+    resultFolder = joinpath(@__DIR__, "..", "res") * "/"
+    dataFolder = joinpath(@__DIR__, "..", "data") * "/"
     
     # Maximal number of files in a subfolder
     maxSize = 0
