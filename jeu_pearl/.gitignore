@@ -1,0 +1,25 @@
+# Sauvegardes temporaires créées lors des batchs
+data_backup_*/
+res_backup_*/
+
+# Backups d'éditeur
+*~
+*.swp
+*.swo
+
+# Métadonnées système
+.DS_Store
+Thumbs.db
+
+# Artefacts Julia
+*.jl.cov
+*.jl.mem
+*.jl.*.cov
+deps/build.log
+
+# Logs
+*.log
+
+# Fichiers IDE
+.vscode/
+.idea/
